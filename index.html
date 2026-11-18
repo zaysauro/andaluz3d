@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Elevato Andaluz · Tour 3D do apartamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"./lib/three.module.min.js","three/addons/":"./lib/addons/"}}</script>
+<style>
+:root{--bg:#17130d;--panel:rgba(23,19,13,.82);--gold:#c9a96a;--gold2:#e6d2a3;--ink:#f3ede2;--mute:#b3a68e;--line:rgba(201,169,106,.28);--sand:#bfae88}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+header{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;gap:22px;padding:0 20px;z-index:30;background:linear-gradient(180deg,rgba(18,14,9,.96),rgba(18,14,9,.80));border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.brand{display:flex;flex-direction:column;line-height:1;white-space:nowrap}
+.brand small{font-size:9px;letter-spacing:.45em;color:var(--mute)}
+.brand b{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:26px;letter-spacing:.12em;color:var(--gold2)}
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+nav a{color:var(--mute);text-decoration:none;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:9px 12px;border-radius:999px;white-space:nowrap}
+nav a.on{color:#1b150c;background:var(--gold)}
+.view{position:fixed;inset:58px 0 0 0;display:none}
+.view.on{display:block}
+/* ---------- TOUR ---------- */
+#stage{position:absolute;inset:0;touch-action:none;cursor:grab}
+#stage.drag{cursor:grabbing}
+#stage canvas{display:block;width:100%;height:100%}
+.glass{background:var(--panel);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#rooms{position:absolute;left:16px;top:16px;width:218px;padding:12px;z-index:5}
+#rooms h3,.ctl h3{margin:2px 4px 10px;font-family:"Cormorant Garamond",serif;font-weight:500;font-size:20px;color:var(--gold2);letter-spacing:.04em}
+#rooms button{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:9px;font-size:13px;cursor:pointer;color:var(--ink)}
+#rooms button span{font-size:11px;color:var(--mute)}
+#rooms button:hover{background:rgba(201,169,106,.12)}
+#rooms button.on{background:rgba(201,169,106,.22)}
+#rooms button[hidden]{display:none}
+.ctl{position:absolute;right:16px;top:16px;width:262px;padding:12px 14px;z-index:5;max-height:calc(100% - 32px);overflow:auto}
+.ctl label.t{display:block;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin:12px 2px 6px}
+.seg{display:flex;flex-wrap:wrap;gap:4px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{flex:1 1 auto;border:0;background:none;padding:7px 8px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--ink);min-width:0}
+.seg button.on{background:var(--gold);color:#1b150c;font-weight:500}
+.note{font-size:11px;color:var(--mute);line-height:1.45;margin:8px 2px 0}
+.iconbar{position:absolute;right:16px;bottom:16px;display:flex;gap:8px;z-index:6}
+.iconbar button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(10px)}
+.iconbar svg{width:20px;height:20px;stroke:var(--gold2);fill:none;stroke-width:1.6}
+#hint{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);font-size:12px;color:var(--mute);padding:8px 14px;z-index:4;white-space:nowrap}
+#hs{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.hot{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:8px}
+.hot i{width:22px;height:22px;border-radius:50%;background:rgba(201,169,106,.95);box-shadow:0 0 0 6px rgba(201,169,106,.25),0 2px 10px rgba(0,0,0,.4);display:block;position:relative}
+.hot i::after{content:"";position:absolute;inset:7px;border-radius:50%;background:#fff}
+.hot b{font-weight:500;font-size:11px;letter-spacing:.06em;background:rgba(23,19,13,.78);padding:5px 9px;border-radius:7px;white-space:nowrap;opacity:0;transform:translateX(-4px);transition:.2s}
+.hot:hover b,.hot.lbl b{opacity:1;transform:none}
+.hot.room i{width:12px;height:12px;box-shadow:0 0 0 4px rgba(201,169,106,.3)}
+.hot.room i::after{display:none}
+.hot.room b{opacity:1;transform:none;font-size:12px}
+#card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,88vw);padding:18px 20px;z-index:8;display:none}
+#card h4{margin:0 0 6px;font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:500;color:var(--gold2)}
+#card p{margin:0 0 10px;font-size:13px;line-height:1.55}
+#card small{display:block;color:var(--mute);font-size:11px;line-height:1.45}
+#card .x{position:absolute;right:10px;top:8px;background:none;border:0;font-size:22px;cursor:pointer;color:var(--mute)}
+#joy{position:absolute;left:22px;bottom:22px;width:120px;height:120px;border-radius:50%;border:1px solid var(--line);background:rgba(23,19,13,.45);z-index:6;display:none;touch-action:none}
+#joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:rgba(201,169,106,.85)}
+#loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg);z-index:20;font-family:"Cormorant Garamond",serif;font-size:26px;color:var(--gold2);letter-spacing:.12em;transition:opacity .6s}
+#loading small{display:block;font-family:Montserrat;font-size:11px;letter-spacing:.3em;color:var(--mute);margin-top:8px;text-align:center}
+#mobtoggle{display:none}
+/* ---------- PLANTA ---------- */
+.page{height:100%;overflow:auto;padding:28px clamp(16px,4vw,56px) 60px}
+.page h2{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:clamp(30px,4vw,44px);color:var(--gold2);margin:0 0 6px;letter-spacing:.02em}
+.page h3{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:26px;color:var(--gold2);margin:34px 0 10px}
+.page p,.page li{font-size:14px;line-height:1.65;color:#e9e2d4}
+.lead{color:var(--mute)!important;max-width:880px}
+.planwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start;margin-top:18px}
+#plansvg{width:100%;height:auto;background:var(--sand);border-radius:12px;display:block}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{color:var(--mute);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.tag{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.tag.v{color:#9fd39a;border-color:rgba(159,211,154,.4)}
+.tag.a{color:#e9c27a;border-color:rgba(233,194,122,.45)}
+input[type=range]{width:100%;accent-color:var(--gold)}
+/* ---------- GALERIA ---------- */
+.hero{position:relative;border-radius:16px;overflow:hidden;margin:14px 0 8px}
+.hero img{width:100%;display:block;max-height:62vh;object-fit:cover}
+.hero div{position:absolute;left:0;right:0;bottom:0;padding:26px 28px;background:linear-gradient(0deg,rgba(15,12,8,.9),transparent)}
+.hero div b{font-family:"Cormorant Garamond",serif;font-size:clamp(28px,4vw,46px);font-weight:500;color:#fff}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0 30px}
+.pair figure{margin:0}
+.pair img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:12px;display:block;background:#2a241a;cursor:zoom-in}
+.pair figcaption{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-top:7px}
+.amen{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.amen img{width:100%;border-radius:10px;display:block}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;place-items:center;z-index:50;cursor:zoom-out}
+#lb img{max-width:94vw;max-height:92vh;border-radius:8px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.box{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:rgba(255,255,255,.02)}
+.box h4{margin:0 0 8px;font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:500;color:var(--gold2)}
+ol.qc{padding-left:20px;margin:6px 0 0}
+ol.qc li{font-size:13px;line-height:1.55;margin-bottom:6px}
+.st{font-size:11px;color:#9fd39a}
+.st.o{color:#e9c27a}
+@media (max-width:860px){
+  header{gap:10px;padding:0 12px}
+  .brand b{font-size:20px}
+  #rooms{left:8px;top:8px;right:8px;width:auto;padding:6px;display:flex;overflow-x:auto;gap:2px}
+  #rooms h3{display:none}
+  #rooms button{width:auto;white-space:nowrap;flex:0 0 auto;padding:7px 10px}
+  #rooms button span{display:none}
+  .ctl{top:auto;bottom:156px;right:8px;left:8px;width:auto;display:none;max-height:52%}
+  .ctl.open{display:block}
+  #mobtoggle{display:grid}
+  #joy{display:block}
+  #hint{display:none}
+  .planwrap,.pair{grid-template-columns:1fr}
+  .tbl{display:block;overflow-x:auto}
+  .brand small{display:none}
+  nav a{padding:8px 9px;font-size:11px;letter-spacing:.08em}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><small>ELEVATO</small><b>ANDALUZ</b></div>
+  <nav id="nav">
+    <a href="#tour" data-v="tour">Tour 3D</a>
+    <a href="#planta" data-v="planta">Planta</a>
+    <a href="#galeria" data-v="galeria">Ambientes</a>
+  </nav>
+</header>
+
+<!-- ================= TOUR ================= -->
+<section class="view" id="v-tour">
+  <div id="stage"></div>
+  <div id="hs"></div>
+  <div id="rooms" class="glass">
+    <h3>Ambientes</h3>
+    <button data-room="entrada">Entrada <span>hall</span></button>
+    <button data-room="sala">Sala de estar / jantar <span></span></button>
+    <button data-room="varanda">Varanda <span></span></button>
+    <button data-room="cozinha">Cozinha <span></span></button>
+    <button data-room="aserv">Área de serviço <span></span></button>
+    <button data-room="dorm1">Dormitório 01 <span></span></button>
+    <button data-room="dorm2">Dormitório 02 <span></span></button>
+    <button data-room="banho">Banheiro <span></span></button>
+    <button data-room="maquete">Vista maquete <span>3D</span></button>
+  </div>
+  <div class="ctl glass" id="ctl">
+    <h3>Personalizar</h3>
+    <label class="t">Tipologia (book p. 30–32)</label>
+    <div class="seg" id="segVar">
+      <button data-v="A">Varanda + churrasq.</button>
+      <button data-v="B">Varanda</button>
+      <button data-v="C">Sem varanda</button>
+    </div>
+    <label class="t">Apresentação</label>
+    <div class="seg" id="segDecor">
+      <button data-v="1">Decorado</button>
+      <button data-v="0">Sem mobiliário</button>
+    </div>
+    <label class="t">Luz</label>
+    <div class="seg" id="segLight">
+      <button data-v="dia">Dia</button>
+      <button data-v="tarde">Fim de tarde</button>
+      <button data-v="noite">Noite</button>
+    </div>
+    <label class="t">Navegação</label>
+    <div class="seg" id="segMode">
+      <button data-v="fp">Caminhar</button>
+      <button data-v="orbit">Maquete</button>
+    </div>
+    <p class="note" id="decorNote">Decoração conforme imagens ilustrativas do book. Mobiliário não faz parte do contrato.</p>
+  </div>
+  <div class="iconbar">
+    <button id="mobtoggle" title="Opções"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button id="btnHelp" title="Comandos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6M12 17h.01"/></svg></button>
+    <button id="btnFs" title="Tela cheia"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+  <div id="hint" class="glass">Arraste para olhar · W A S D ou setas para andar · duplo clique no piso para ir até o ponto · roda do mouse = zoom</div>
+  <div id="joy"><i></i></div>
+  <div id="card" class="glass"><button class="x" aria-label="Fechar">×</button><h4></h4><p></p><small></small></div>
+  <div id="loading"><div>ELEVATO ANDALUZ<small>CARREGANDO O APARTAMENTO</small></div></div>
+</section>
+
+<!-- ================= PLANTA ================= -->
+<section class="view" id="v-planta"><div class="page">
+  <h2>Planta reconstruída</h2>
+  <p class="lead">Sobreposição da geometria usada no 3D (vermelho = paredes, azul = janelas e porta de correr, verde = vãos de porta) com a planta original do book. Escala calculada a partir da área privativa declarada (34,6 m²): 1 m = 190 px na folha renderizada.</p>
+  <div class="planwrap">
+    <svg id="plansvg" viewBox="0 0 1400 1000"></svg>
+    <div>
+      <label class="t" style="font-size:10px;letter-spacing:.18em;color:var(--mute);text-transform:uppercase">Tipologia</label>
+      <div class="seg" id="segVarPlan" style="margin:6px 0 14px">
+        <button data-v="A">Churrasq.</button><button data-v="B">Varanda</button><button data-v="C">Sem varanda</button>
+      </div>
+      <label style="font-size:10px;letter-spacing:.18em;color:var(--mute);text-transform:uppercase">Opacidade da reconstrução</label>
+      <input type="range" id="ovOp" min="0" max="1" step="0.05" value="0.55">
+      <table class="tbl" style="margin-top:14px" id="areaTbl"></table>
+      <p class="note">Áreas internas estimadas pela geometria reconstruída (face interna das paredes). Não substituem o memorial de incorporação.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ================= GALERIA ================= -->
+<section class="view" id="v-galeria"><div class="page" id="gal"></div></section>
+
+
+<div id="lb"><img alt=""></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
